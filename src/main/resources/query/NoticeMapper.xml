@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.voc.notice.dao.NoticeMapper">
+	<select id="findByCondition" resultType="com.exflyer.oddi.user.api.voc.notice.dto.NoticeConditionRes">
+		select ROW_NUMBER() OVER(ORDER BY top_location desc, seq desc) AS rownum, seq, title, reg_date from notice
+	</select>
+
+	<select id="findNoticeDetail" resultType="com.exflyer.oddi.user.api.voc.notice.dto.NoticeDetailRes">
+		select t2.*
+		  from (
+						select rownum
+								, case when rownum = #{rownum} then 'aon' when  rownum <![CDATA[ < ]]> #{rownum} then 'pre' else 'next' end seqType
+								, seq
+								, title
+								, contents
+								, reg_date
+								, s3_file_key
+								, s3_bucket
+								, fileSeq
+								, filePath
+								, fileName
+								, fileExtension
+								, fileType
+						from (
+										select ROW_NUMBER() OVER(ORDER BY top_location desc, seq desc) AS rownum
+													, n.seq
+													, n.title
+													, n.contents
+													, n.reg_date
+													, f.s3_file_key
+													, f.s3_bucket
+													, f.seq as fileSeq
+													, f.path as filePath
+													, f.name as fileName
+													, f.extension as fileExtension
+													, f.type as fileType
+											from notice n
+										left outer join notice_files nf on n.seq = nf.notice_seq
+										left outer join files f on f.seq = nf.file_seq
+									)t
+							where t.rownum In (#{rownum}-1,#{rownum},#{rownum}+1)
+		  			)t2
+			order by seqType
+
+	</select>
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.mustad.dao.MustadMapper">
+
+	<select id="findMustadInfo" resultType="com.exflyer.oddi.user.api.mustad.dto.MemeberAdvStateResult">
+		select ifnull(sum(case when #{today} between start_date and end_date then 1 else 0 end), 0) as ad
+				 , ifnull(sum(case when #{today} <![CDATA[ < ]]> start_date then 1 else 0 end), 0) as ready
+		from adv
+		where progress_code = 'PGT002'
+			and member_id = (select id from member where mustad_id = #{mustadId})
+	</select>
+
+	<select id="findMemberAdvStateResign" resultType="com.exflyer.oddi.user.api.mustad.dto.MemeberAdvStateResult">
+		select ifnull(sum(case when #{today} between start_date and end_date then 1 else 0 end), 0) as ad
+				 , ifnull(sum(case when #{today} <![CDATA[ < ]]> start_date then 1 else 0 end), 0) as ready
+		from adv
+		where progress_code = 'PGT002'
+			and member_id = #{userId}
+	</select>
+
+</mapper>

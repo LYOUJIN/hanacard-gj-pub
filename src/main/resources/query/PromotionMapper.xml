@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.promotion.dao.PromotionMapper">
+
+	<select id="findPromotionCoupon" resultType="com.exflyer.oddi.user.api.promotion.dto.PromotionCouponResult">
+		select pc.seq as promotion_coupon_seq, p.discount_price, expired_date, pc.coupon_code
+			from promotion_coupon pc inner join promotion p on pc.promotion_seq = p.seq
+		 where member_id  = #{memberId}
+			 and coupon_code = #{couponCode}
+			 and pc.usable = 0
+			 and pc.del = 0
+	</select>
+
+</mapper>

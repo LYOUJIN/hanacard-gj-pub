@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.voc.inquire.dao.InquireMapper">
+	<select id="findByMemberId" resultType="com.exflyer.oddi.user.api.voc.inquire.dto.InquireListRes">
+		select
+			seq,
+		    title,
+		    inquiry_type_code,
+		    (select name from code where code = v.inquiry_type_code and group_code = 'IQT') as inquiry_type_name,
+		    name,
+		    date_format(reg_date, '%Y.%m.%d') as reg_date,
+		    case when answer is null then '답변대기' else '답변완료' end as isAnswer
+		from voc v
+		where member_id = #{memberId}
+		order by seq desc
+	</select>
+
+	<select id="findDetailBySeq" resultType="com.exflyer.oddi.user.api.voc.inquire.dto.InquireDetailRes">
+		select
+			seq,
+			title,
+		    contents,
+			inquiry_type_code,
+			(select name from code where code = v.inquiry_type_code and group_code = 'IQT') as inquiry_type_name,
+			name,
+			date_format(reg_date, '%Y.%m.%d') as reg_date,
+			answer
+		from voc v
+		<where>
+			<if test = 'seq'>
+		    seq = #{seq}
+			</if>
+			<if test = '@org.apache.commons.lang3.StringUtils@isNotBlank(memberId)'>
+				and member_id = #{memberId}
+			</if>
+			<if test = '@org.apache.commons.lang3.StringUtils@isNotBlank(uniqCode)'>
+				and uniq_code = #{uniqCode}
+			</if>
+		</where>
+	</select>
+
+	<select id ="findImageByVocSeq" resultType="com.exflyer.oddi.user.api.voc.inquire.dto.InquireImage">
+		select f.seq,
+			   path,
+			   name,
+		       content_type
+		from files f
+				 inner join voc_file vf on vf.file_seq = f.seq
+		where vf.voc_seq = #{seq}
+	</select>
+</mapper>

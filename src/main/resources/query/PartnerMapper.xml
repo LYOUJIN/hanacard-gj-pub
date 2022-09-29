@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.exflyer.oddi.user.api.adv.partner.dao.PartnerDao">
+	<select id="findGroupByAddrGu" resultType="String">
+		select addr_gu
+		from
+			partner
+		where
+		      channel_type = 'PTT001'
+		and addr_gu is not null
+		and operation = true
+		group by addr_gu
+		order by addr_gu
+	</select>
+
+	<select id="findPartnerMall" resultType="com.exflyer.oddi.user.api.adv.partner.dto.PartnerInfo">
+		select
+			mall_name,
+			(select f.path from partner_image pi join files f on pi.file_seq = f.seq where pi.partner_seq = p.seq order by seq Limit 1) as image_path
+		from partner p
+		where addr_gu = #{guName}
+		and channel_type = #{channelType}
+		and operation = true
+	</select>
+
+</mapper>

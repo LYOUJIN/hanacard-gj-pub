@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <logger name="com.exflyer" level="DEBUG"/>
+  <logger name="jdbc.connection" level="ERROR"/>
+  <logger name="com.amazonaws" level="DEBUG"/>
+  <logger name="jdbc.resultset" level="ERROR"/>
+  <logger name="jdbc.resultsettable" level="ERROR"/>
+  <logger name="jdbc.audit" level="ERROR"/>
+  <logger name="org.mybatis" level="ERROR"/>
+  <logger name="com.zaxxer.hikari" level="INFO"/>
+  <logger name="org.hibernate" level="INFO"/>
+  <logger name="jdbc.sqlonly" level="WARING"/>
+  <logger name="org.apache.http.wire" level="INFO"/>
+  <logger name="com.exflyer.oddi.user" level="INFO"/>
+  <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter">
+    <level value="DEBUG"/>
+  </logger>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+</configuration>

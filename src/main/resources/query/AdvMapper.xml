@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.adv.adv.dao.AdvMapper">
+
+	<select id="findMemberCompany" resultType="com.exflyer.oddi.user.api.adv.adv.dto.MemberCompanyRes">
+		select t.seq as member_company, t.corporation, t.name as member_company_name, t.ceo, t.business_license_file, t.business_license_number
+					, f.seq as file_seq ,f.name as fileName, f.extension, f.path, f.content_type, f.s3_bucket, f.s3_file_key
+			from(select ROW_NUMBER() OVER(PARTITION BY member_id ORDER BY seq DESC)   as rownum
+								 , seq, corporation, name, ceo, business_license_file, business_license_number
+						 from member_company where member_id = #{regId}
+					) t left join files f on t.business_license_file = f.seq
+		where rownum = 1
+	</select>
+	<select id="findAdvPartnerCode" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvPartnerRes">
+		select seq as partner_seq
+					, mall_name
+					, total_slot
+					, slot_price
+			from partner
+		 where channel_type = #{channelType}
+		   and seq in
+			<foreach item="seq" index="index" collection="seqs" open="(" close=")" separator=",">
+				#{seq}
+			</foreach>
+	</select>
+
+	<select id="findAdvPartnerProductCode" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvProductPartnerRes">
+		select pp.partner_seq
+					, pt.mall_name
+					, pt.total_slot
+					, p.price as slot_price
+          , p.seq as product_seq
+          , p.name as product_name
+		 from product p
+			left join product_partner pp on p.seq = pp.product_seq
+			left join partner pt on pp.partner_seq = pt.seq
+		  where p.seq in
+		<foreach item="seq" index="index" collection="seqs" open="(" close=")" separator=",">
+			#{seq}
+		</foreach>
+	</select>
+
+	<select id="findPartnerConfig" resultType="com.exflyer.oddi.user.api.adv.adv.dto.PartnerConfigReq">
+		select
+						pc.slot_count
+					, pc.slot_video_time
+					, pc.design_request
+					, pc.display_div
+					, pc.side_display_service_code
+					, pc.bottom_display_service_code
+					, pc.type
+					, pc.adv_name
+					, pc.oddi_adv_from_start_date
+					, pc.oddi_adv_to_start_date
+					, pc.oddi_adv_max_date
+					, pc.oddi_adv_cancel_date
+					, pc.subway_adv_last_date
+					, pc.subway_adv_max_start_date
+					, pc.subway_adv_cancel_date
+					, pc.subway_adv_max_date
+					, (select name from code where code = pc.bottom_display_service_code) bottom_display_service_name
+		from partner_config pc
+		where pc.type = #{channelType}
+	</select>
+
+	<select id="findDefaultAdvFiles" resultType="com.exflyer.oddi.user.api.adv.adv.dto.PartnerFiles">
+		select
+					pdaf.default_adv_file_seq
+					, pdaf.default_adv_type
+					, f.path as file_path
+					, f.name as file_name
+		from partner_default_adv_files pdaf inner join files f on f.seq = pdaf.default_adv_file_seq
+		where pdaf.channel_type = #{channelType}
+	</select>
+
+</mapper>

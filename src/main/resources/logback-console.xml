@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <property name="LOGS_ABSOLUTE_PATH" value="C:\logs" />
+
+  <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOGS_ABSOLUTE_PATH}/inicis_db_error.log</file>
+    <encoder>
+      <pattern>[%d{yyyy-MM-dd HH:mm:ss}:%-3relative][%thread] %-5level %logger{35} - %msg%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOGS_ABSOLUTE_PATH}/inicis_db_error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy                  class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <!-- or whenever the file size reaches 100MB -->
+        <maxFileSize>100MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
+    </rollingPolicy>
+  </appender>
+
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <logger name="com.exflyer" level="DEBUG"/>
+  <logger name="jdbc.connection" level="ERROR"/>
+  <logger name="com.amazonaws" level="DEBUG"/>
+  <logger name="jdbc.resultset" level="ERROR"/>
+  <logger name="jdbc.resultsettable" level="INFO" additivity="false"/>
+  <logger name="jdbc.audit" level="ERROR"/>
+  <logger name="org.mybatis" level="ERROR"/>
+  <logger name="com.zaxxer.hikari" level="INFO"/>
+  <logger name="org.hibernate" level="INFO"/>
+  <logger name="jdbc.sqlonly" level="INFO"/>
+  <logger name="org.apache.http.wire" level="DEBUG"/>
+  <logger name="com.exflyer.oddi.user" level="DEBUG"/>
+  <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter">
+    <level value="DEBUG"/>
+  </logger>
+
+  <logger name="com.exflyer.oddi.user.api.payment.service.PaymentService"  level="ERROR" additivity="false">
+    <appender-ref ref="ROLLING" />
+  </logger>
+
+  <logger name="com.exflyer.oddi.user.api.payment.service.InicisService"  level="ERROR" additivity="false">
+    <appender-ref ref="ROLLING" />
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+</configuration>

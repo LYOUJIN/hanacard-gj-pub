@@ -1,0 +1,45 @@
+server:
+  port: 28090
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+    context-path: "/user"
+  shutdown: graceful
+spring:
+  profiles:
+    active: local
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 201MB
+  freemarker:
+    template-loader-path: classpath:/freemarker
+    suffix: .ftl
+
+
+jasypt:
+  encryptor:
+    bean: jasyptStringEncryptor
+
+
+youtube:
+  apiUrl : "https://www.googleapis.com/youtube/v3/playlistItems"
+  apiKey : AIzaSyDNkWis7ifThdvzDBj486pElj77OESwH0Y
+  clientKey : 704700639750-lr3am0viul2mmfm4onfr89ap6acmapnp.apps.googleusercontent.com
+  play-list-id : "UUUpma3sbzBPxQhWnyUKDBZg"
+  part : snippet&fields=nextPageToken,pageInfo,items(id,snippet(position,publishedAt,title,description,thumbnails(high(url)),resourceId(videoId)))&order=date&maxResults=300
+
+kakaoNotification:
+  #apiUrl: "https://rest.surem.com/alimtalk/v2/json"
+  apiUrl: "https://gw.surem.com/alimtalk/v2/json"
+  id: "lgtest"
+  pw: "53927249"
+  deptCode: "PN--WT-EL"
+  sendProfileUUID: "@officeservice"
+  sendProfileKey: "9c98413645fbe5023d15e0cb0cdf4a518bfc1018"
+  reSendFromPhoneNum: "01051227638"
+  reSendFromName: "오디관리자"
+  reSendFromId: "user-api"
+  templateCode : "ex_test001"

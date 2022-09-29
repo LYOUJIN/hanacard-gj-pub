@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.adv.subway.dao.SubwayMapper">
+
+	<select id="findAbleSubwayLineList" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayLine">
+		select *
+			from (
+							select
+											ps.subway_code as code
+										, (select c.name from code c where c.code = ps.subway_code) as name
+							from partner p
+							join partner_subway ps on p.seq = ps.partner_seq
+							join code c on ps.subway_code = c.code
+							where channel_type = #{channelType}
+							and operation = true
+							<if test = 'seq > 0'>
+								and ps.partner_seq = #{seq}
+							</if>
+							group by subway_code
+					) t
+			order by t.name
+	</select>
+
+	<select id="findAbleSubwayList" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayLine">
+		select *
+		from (
+					<if test = '!isProduct'>
+						select
+									ps.subway_code as code
+								, (select c.name from code c where c.code = ps.subway_code) as name
+								, f.seq as file_seq
+								, f.path
+								, f.name as file_name
+								, f.extension
+							from partner p
+							join partner_subway ps on p.seq = ps.partner_seq
+							join code c on ps.subway_code = c.code
+							left join files f on p.map_file_seq = f.seq
+							where channel_type = #{channelType}
+								and operation = true
+						<if test = 'seq > 0'>
+							and ps.partner_seq = #{seq}
+						</if>
+						group by subway_code
+					</if>
+					<if test = 'isProduct'>
+					select '' as code
+								, part.mall_name as name
+								, (select count(1) from partner_subway ps where ps.partner_seq = part.seq) as line_count
+								, part.badge_code
+								, f.seq as file_seq
+								, f.path
+								, f.name as file_name
+								, f.extension
+						from product p
+						inner join product_partner pp on p.seq = pp.product_seq
+						inner join partner part on part.seq = pp.partner_seq
+						left outer join files f on f.seq = part.map_file_seq
+						where p.channel_type = #{channelType}
+						<if test = 'productSeq > 0'>
+							and pp.product_seq = #{productSeq}
+						</if>
+					</if>
+			) t
+			order by t.name
+	</select>
+
+
+	<select id="findPartnerSubwayName" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayName">
+		select *
+			from (
+								select t.seq
+									 , t.mall_name as name
+									 , badge_code
+									 , GROUP_CONCAT(t.subway_code) as subway_code
+								from (
+										 select  p.seq
+												,p.mall_name
+												,p.badge_code
+												, subway_code
+											from partner p
+											join partner_subway ps on p.seq = ps.partner_seq
+											join code c on ps.subway_code = c.code
+											where channel_type = #{channelType}
+											 and operation = true
+									) t
+							group by t.seq
+							union all
+							select t.seq
+									 , t.name
+									 , badge_code
+									 , GROUP_CONCAT(t.subway_code) as subway_code
+								from (
+										 select
+											 p.seq
+											,p.name
+											,p.badge_code
+											,ps.subway_code
+										 from product p
+												inner join product_partner pp on p.seq = pp.product_seq
+												inner join partner part on part.seq = pp.partner_seq
+												inner join partner_subway ps on ps.partner_seq  = part.seq
+										 where p.channel_type = #{channelType}
+										 and part.operation = true
+									 ) t
+								group by t.seq
+				)g
+			order by g.name
+	</select>
+
+	<select id="findSubwayPartnerList" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayPartnerListRes">
+		select t.*
+ 		  from (
+				<if test = 'isProduct'>
+				select 0 as seq
+					, pp.product_seq
+					, p.name as mall_name
+					, '' as summary
+					, p.description
+					, p.badge_code
+					, (select name from code where code = p.badge_code) as badge_name
+					, 1 as total_slot
+					, part.slot_video_time -- 영상시간
+					, p.price as slot_price
+					, part.operation_week
+					, part.operation_start_time
+					, part.operation_end_time
+					, part.display
+				from product p
+				inner join product_partner pp on p.seq = pp.product_seq
+				inner join partner part on part.seq = pp.partner_seq
+				where p.operation = true
+				and part.channel_type = #{channelType}
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(subwayName)">
+					and concat(part.addr, '|', part.detail_addr, '|', part.mall_name, '|',p.name) like concat('%', #{subwayName},'%')
+				</if>
+				<if test = '@org.apache.commons.lang3.StringUtils@isNotBlank(subwayCode)'>
+					and pp.partner_seq in (select partner_seq from partner_subway where subway_code = #{subwayCode})
+				</if>
+				<if test = 'isTransfer'>
+					and	(select count(*) from partner_subway where partner_seq = pp.partner_seq) > 1
+				</if>
+				group by p.seq
+				</if>
+				<if test = '!isProduct'>
+					select p.seq
+						, 0 as product_seq
+						, p.mall_name
+						, p.summary
+						, p.description
+						, p.badge_code
+						, (select name from code where code = p.badge_code) as badge_name
+						, p.total_slot
+						, p.slot_video_time
+						, p.slot_price
+						, p.operation_week
+						, p.operation_start_time
+						, p.operation_end_time
+						, p.display
+						, f.path as map_file_path
+					from partner p left outer join files f on f.seq = p.map_file_seq
+					where channel_type = #{channelType}
+					and operation = true
+					<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(subwayName)">
+						and (
+									CONCAT(p.addr, '|', p.detail_addr, '|', p.mall_name) like concat('%', #{subwayName},'%')
+							or
+						exists (
+										select 1
+											from partner_tags pt inner join tags t on pt.tag_seq = t.seq
+											where pt.partner_seq = p.seq
+											and p.channel_type = #{channelType}
+											and p.operation = true
+											and IFNULL(tag,'') like concat('%', #{subwayName},'%')
+										)
+						)
+					</if>
+					<if test = '@org.apache.commons.lang3.StringUtils@isNotBlank(subwayCode)'>
+						and p.seq in (select partner_seq from partner_subway where subway_code = #{subwayCode})
+					</if>
+					<if test = 'isTransfer'>
+						and	(select count(*) from partner_subway where partner_seq = p.seq) > 1
+					</if>
+				</if>
+			)t
+		order by t.mall_name
+	</select>
+
+	<select id ="findSubwayPartnerImage" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayImage">
+		select f.seq,
+			   path,
+			   name
+		from files f
+				 inner join partner_image pi on pi.file_seq = f.seq
+		where pi.partner_seq = #{seq}
+	</select>
+
+	<select id ="findSubwayProductPartnerImage" resultType="com.exflyer.oddi.user.api.adv.subway.dto.SubwayImage">
+		select pf.product_seq as seq
+		     , pf.file_seq
+		     , f.path
+			 , f.name
+		from product_file pf inner join files f on f.seq = pf.file_seq
+		where pf.product_seq = #{productSeq}
+	</select>
+
+	<select id="findReadyPartnerSlotList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvReadyPartnerSlotRes">
+		select
+			partner.seq as partner_seq
+		 	, partner.total_slot
+			, ifnull(v.used_slot_count, 0) + 1 as used_slot
+			, ifnull(case when partner.total_slot <![CDATA[<]]> v.used_slot_count then 0
+							else partner.total_slot - (ifnull(v.used_slot_count, 0) + 1)
+			end, partner.total_slot) as ready_slot
+		from
+		 	partner
+			left outer join (
+				select
+					v.partner_seq
+					, sum(ifnull(used_slot_count, 0)) as used_slot_count
+				from (
+					select
+						partner.partner_seq
+						, sum(case when adv.start_date between #{startDate} and #{endDate} then partner.request_slot
+									 when adv.end_date   between #{startDate} and #{endDate} then partner.request_slot
+									 when adv.start_date <![CDATA[<=]]> #{startDate} and adv.end_date >= #{endDate} then partner.request_slot
+									 else 0
+						end) as used_slot_count
+					from
+						adv
+						inner join adv_partner partner
+						on
+								partner.adv_seq = adv.seq
+					where
+						adv.channel_type = 'PTT002'
+					and
+						adv.progress_code in ('PGT001', 'PGT002')
+					and
+						( adv.end_date >= #{startDate} )
+					<choose>
+					 <when test="!@org.springframework.util.CollectionUtils@isEmpty(partnerSeqList)">
+					and
+						partner.partner_seq in
+						<foreach collection="partnerSeqList" item="partnerSeq" open="(" separator="," close=")">
+							#{partnerSeq}
+						</foreach>
+						</when>
+						<otherwise>
+						and
+							partner.partner_seq = #{partnerSeq}
+						</otherwise>
+					</choose>
+					group by
+						partner.partner_seq
+				) v
+				group by
+					v.partner_seq
+			) v
+			on
+				v.partner_seq = partner.seq
+		where
+			partner.channel_type = 'PTT002'
+		and
+		<choose>
+			<when test="!@org.springframework.util.CollectionUtils@isEmpty(partnerSeqList)">
+				partner.seq in
+				<foreach collection="partnerSeqList" item="partnerSeq" open="(" separator="," close=")">
+					#{partnerSeq}
+				</foreach>
+			</when>
+			<otherwise>
+				partner.seq = #{partnerSeq}
+			</otherwise>
+		</choose>
+		order by
+			partner.seq
+	</select>
+
+
+	<select id="findSubwayNameList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.PartnerName">
+		select t.*
+		from (
+					 select g.seq
+								, g.mall_name                 as name
+								, GROUP_CONCAT(g.subway_code) as subway_code
+								, false                       as product_yn
+					 from (
+									select p.seq
+											 , p.mall_name
+											 , subway_code
+									from partner p
+												 join partner_subway ps on p.seq = ps.partner_seq
+												 join code c on ps.subway_code = c.code
+									where channel_type = #{channelType}
+										and operation = true
+								) g
+					 group by g.mall_name
+					 union all
+					 select seq
+								, name
+								, ''   as subway_code
+								, true as product_yn
+					 from product
+					 where channel_type = #{channelType}
+					 and operation = true
+				 )t
+		order by product_yn desc, name
+	</select>
+
+</mapper>

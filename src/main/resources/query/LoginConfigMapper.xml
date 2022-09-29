@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.user.auth.dao.LoginConfigMapper">
+
+	<select id="find" resultType="com.exflyer.oddi.user.share.dto.OddiLoginConfig">
+		select manager_password_mod_day_count
+				 , member_password_mod_day_count
+				 , manager_token_expired_min
+				 , member_token_expired_min
+		from login_config
+	</select>
+
+
+	<select id="findAllByMember" resultType="com.exflyer.oddi.user.models.Member">
+        select * from member where email = #{email} and provider = #{provider}
+    </select>
+
+</mapper>

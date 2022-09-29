@@ -1,0 +1,83 @@
+spring:
+  datasource:
+    hikari:
+      username: ODDI_APP
+      password: "app21_oddiXX"
+      pool-name: oddi-cp
+      max-lifetime: 12000
+      connection-test-query: select now()
+      minimum-idle: 2
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: "jdbc:mysql://rds-an2-oddiad-prd-mysql.ca3pv7invojs.ap-northeast-2.rds.amazonaws.com:3310/oddi?characterEncoding=utf8&useSSL=false"
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+      use-new-id-generator-mappings: false
+    properties:
+      hibernate:
+        temp:
+          use_jdbc_metadata_defaults=false: false
+      globally_quoted_identifiers: true
+logging:
+  config: classpath:logback-op.xml
+
+# timezone
+timezone: "Asia/Seoul"
+
+aws:
+  s3:
+    public:
+      bucket: "s3-an2-oddiad-prod"
+      video-dir: "/adv/pre-convert"
+      adv_image-dir: "/adv/image"
+      attachments-dir: "/attachments"
+      private-dir: "/business-license/private"
+      corporation-dir: "/business-license/corporation"
+      url-host: "https://resource.oddiad.co.kr"
+      region: "ap-northeast-2"
+
+surem:
+  host: "https://dynapi.surem.com/"
+  deptcode: 4W-BJP-P6
+  usercode: episode
+  # 대표 번호 적용 하려면 발신번호를 sureM 에 등록 해야됨
+  sender: "01075633127"
+  secuCd: "f71742597bd420117f7736f9b052a665fed39d1cdf53707f955da2d6921dcd32"
+
+inicis:
+  mid: "exflyer001"
+  sign:
+    key: "dk4xemkrUUpTQWR2dVJKZEZmREMydz09"
+  cancel:
+    url: "https://iniapi.inicis.com/api/v1/refund"
+  key: "ixSrRp0dOFlssnWA"
+  site-url: "https://api.oddiad.co.kr"
+  clientIp : "3.35.10.5"
+
+
+mustad:
+  signin: "https://dispatcher.prod.api.promota.net/dispatcher/0.4/user/api/oddiad/registUser"
+  storeprofiles: "https://dispatcher.prod.api.promota.net/dispatcher/0.4/signagecontent/api/storeprofiles"
+  userprofile: "https://dispatcher.prod.api.promota.net/dispatcher/0.4/user/api/userdetails"
+  federated:
+    auth: "https://dispatcher.prod.api.promota.net/dispatcher/0.4/user/api/federatedauth"
+    my-content: "https://dispatcher.prod.api.promota.net/dispatcher/0.4/discovery/api/searchresources?page=1&provider=SignageContent&resourcetype=Content.userboardlist"
+    userpool_id: "/us-west-2_GaQjCUQXc"
+    client-id: "portal-prod-promota"
+  kakao:
+    state: "oddi"
+    type: "code"
+    key: "1fb1e9cdfd545152e5fafc08aa20866f"
+    oauth-host: "https://kauth.kakao.com"
+    api-host: "https://kapi.kakao.com"
+    oauth-authorize: "/oauth/authorize"
+    token-uri: "/oauth/token"
+    redirect-uri: "https://api.oddiad.co.kr/user"
+    grant_type: "authorization_code"
+    aws:
+      auth: "https://t92r8de3md.execute-api.us-west-2.amazonaws.com/Prd/authorization"
+
+oddi:
+  host: "https://bit.ly/3uCHbYV"

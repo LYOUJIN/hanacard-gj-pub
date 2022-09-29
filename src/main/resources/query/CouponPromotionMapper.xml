@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.coupon.dao.CouponPromotionMapper">
+
+	<select id="findListUsableCnt" resultType="Integer">
+		select sum(t.usable) as usable_cnt
+			from (
+					select case when cm.usable = 1 then 0 else
+										case when c.expired_date <![CDATA[ < ]]> #{today} then 0 else 1 end end as usable
+						from coupon_mapping cm
+					inner join coupon c on cm.coupon_seq= c.seq
+					inner join coupon_promotion cp on c.promotion_seq = cp.seq
+					where member_id = #{memberId}
+				)t
+	</select>
+
+	<select id="findList" resultType="com.exflyer.oddi.user.api.my.dto.MyPromotionResult">
+		select v.*
+		 from (
+						select
+									 cm.seq as coupon_mapping_seq, cm.coupon_seq
+								 , cm.usable, cm.reg_date
+								 , case when cm.usable = 1 then '사용완료' else
+											case when c.expired_date <![CDATA[ < ]]> #{today} then '만료' else '미사용' end end as usable_name
+								 , cp.name, cp.discount_price
+								 , cp.discount_type
+								 , (select name from code where code = cp.discount_type) as discount_type_name
+								 , cp.promotion_channel_type
+								 , (select name from code where code = cp.promotion_channel_type) as promotion_channel_type_name
+								 , c.start_date, c.expired_date, c.coupon_code
+								 , cm.using_date, cm.payment_seq
+								 , (	case
+												when (
+												    (#{today} between c.start_date and c.expired_date) and cm.usable = false
+												) and (
+												    (	case
+												        when 'MCT001' = cp.signup_coupon_type
+												        	then not exists (
+																		select
+																			1
+																		from
+																			payment p
+																		where
+																			p.member_id = #{memberId}
+																		and
+																			p.type = 'PGT002'
+																	)
+												        else true
+														end )
+													)
+													then 'Y'
+												else 'N'
+							end ) as usable_yn
+								 , cp.name as promotion_name
+						from coupon_mapping cm
+									 inner join coupon c on cm.coupon_seq= c.seq
+									 inner join coupon_promotion cp on c.promotion_seq = cp.seq
+						where member_id = #{memberId}
+					)v
+	</select>
+
+	<select id="findByIslreadyCoupon" resultType="Integer">
+		select count(1)
+			from coupon_mapping cm inner join coupon c
+				on cm.coupon_seq = c.seq
+		 	 and member_id = #{memberId}
+		   and coupon_code = #{couponCode}
+		   and c.expired_date >= #{today}
+	</select>
+
+
+</mapper>

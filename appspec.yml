@@ -1,0 +1,12 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /data001/oddiadm/user
+hooks:
+  ApplicationStop:
+    - location: script/applicationStop.sh
+  BeforeInstall:
+    - location: script/beforeInstall.sh
+  ApplicationStart:
+    - location: script/applicationStart.sh

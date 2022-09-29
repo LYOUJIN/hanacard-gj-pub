@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.banner.dao.BannerMapper">
+
+	<select id="findBanner" resultType="com.exflyer.oddi.user.api.banner.dto.BannerResult">
+		select *, f.path, f.name as file_name
+			from banner left join files f on file_seq = f.seq
+			where location_code = 'BLT004'
+			and usable = true
+			and expo_start_date <![CDATA[<=]]> #{today}
+			and expo_end_date <![CDATA[>=]]>  #{today}
+	</select>
+
+</mapper>

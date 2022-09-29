@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.my.dao.OddiMngMapper">
+
+	<sql id="findOddiMngList">
+		select
+			a.seq
+				 , a.channel_type
+				 , (select name from code where code = a.channel_type) as channel_type_name
+				 , a.title
+				 , a.start_date, a.end_date
+				 , a.audit_code
+				 , IFNULL((select ap.product_seq from  adv_product ap where a.seq = ap.adv_seq),0) as product_seq
+				 , a.reg_date
+				 , a.progress_code
+				 , a.oddi_adv_cancel_date
+				 , a.user_check
+		from
+			adv a inner join payment p
+											 on
+														 a.member_id = #{memberId}
+													 and
+														 a.seq = p.adv_seq
+		where
+			( p.price = 0 or exists ( select 1 from pg_payment_log ppl where ppl.payment_seq = p.seq and ppl.pg_payment_type = 0 and ( ppl.result_code in ('00', '0000') ) ) )
+			 or
+			( p.type = 'PGT002' and a.audit_code = 'ADT001' )
+			 or
+			( p.type = 'PGT002' and a.audit_code = 'ADT002' )
+			 or
+			( a.audit_code = 'ADT003' )
+	</sql>
+
+	<select id="findList" resultType="com.exflyer.oddi.user.api.my.dto.OddiMngResult">
+		select
+						t.seq as adv_seq
+					, t.channel_type
+					, ( case
+							when t.product_seq  <![CDATA[ <> ]]> 0 then CONCAT(t.channel_type_name, ' 묶음 상품')
+							else t.channel_type_name
+						end ) as channel_type_name
+					, t.title
+					, t.start_date
+					, t.end_date
+					, t.audit_code
+					, (select name from code where code = t.audit_code) as audit_code_name
+					, t.product_seq
+					, t.reg_date
+					, t.progress_code
+					, t.oddi_adv_cancel_date
+		from (
+					<include refid="findOddiMngList"/>
+ 		) t
+ 	where
+ 	    1 = 1
+	<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(auditCode)">
+	and t.progress_code = 'PGT002'
+	and t.audit_code = #{auditCode}
+	</if>
+ 	order by
+ 		reg_date desc
+	</select>
+
+	<select id="findPartnerList" resultType="com.exflyer.oddi.user.api.my.dto.OddiMngPartner">
+		select a.seq as adv_seq,p.seq as partner_seq, p.mall_name
+			from adv a
+		 inner join adv_partner ap on a.seq = ap.adv_seq
+		 inner join partner p on ap.partner_seq = p.seq
+		where a.member_id = #{memberId}
+		  and a.seq = #{advSeq}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(auditCode)">
+			and a.audit_code = #{auditCode}
+		</if>
+	</select>
+
+	<select id="findProductPartnerList" resultType="com.exflyer.oddi.user.api.my.dto.OddiMngPartner">
+		select a.seq as adv_seq, pp.product_seq, p.seq as partner_seq, p.mall_name
+			from adv a
+		inner join adv_partner ap on a.seq = ap.adv_seq
+		inner join product_partner pp on ap.partner_seq = pp.partner_seq
+		inner join partner p on pp.partner_seq = p.seq
+		where a.member_id = #{memberId}
+		  and a.seq = #{advSeq}
+		  and pp.product_seq  = #{productSeq}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(auditCode)">
+			and a.audit_code = #{auditCode}
+		</if>
+	</select>
+
+	<select id="findByMemberId" resultType="Integer">
+		select count(1)
+			from (
+			    	<include refid="findOddiMngList"/>
+					)t
+			where t.user_check = false
+	</select>
+</mapper>

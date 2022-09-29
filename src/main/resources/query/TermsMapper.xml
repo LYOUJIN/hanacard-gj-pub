@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.voc.terms.dao.TermsMapper">
+
+	<select id="findTermsService" resultType="com.exflyer.oddi.user.api.voc.terms.dto.TermsServiceRes">
+		select version, seq, title, contents, required, code, name
+			from (
+						 select ROW_NUMBER() OVER(PARTITION BY a.type ORDER BY a.version DESC) as rownum
+								 	, a.version, a.seq, a.title, a.contents, a.required, b.code, name
+						 from terms a, code b
+						 where a.type = b.code
+							 and a.adv_terms = #{status}
+							 and a.status_code = 'TST002'
+							 )t
+		where rownum = 1
+		order by code
+	</select>
+</mapper>

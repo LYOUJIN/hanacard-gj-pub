@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.adv.oddi.dao.OddiMapper">
+
+	<select id="findList" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiResult">
+		select  p.seq
+					, (select name from code where code = p.badge_code) as badge_name
+					, p.badge_code
+					, p.mall_name
+					, p.description
+					, p.slot_video_time -- 영상시간
+					, p.operation_week
+					,	p.summary
+					,	p.description
+					, p.operation_start_time
+					, p.operation_end_time
+					, p.day_expo_count
+					, p.total_slot
+					, p.slot_price
+					, p.latitude
+					, p.longitude
+					, p.grid_x
+					, p.grid_y
+					, p.adv_case_Expo
+					, p.reg_date
+					, img.file_seq
+					, img.path
+					, img.name
+					, img.extension
+			from partner p
+		  left join ( select pi.partner_seq, pi.file_seq, f.path, f.name, f.extension
+										 from partner_image pi inner join files f on f.seq = pi.file_seq
+										 group by pi.partner_seq
+										having pi.partner_seq = min(pi.partner_seq)
+			 ) img on p.seq = img.partner_seq
+			where p.channel_type = #{channelType}
+				and p.operation = #{operation}
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchText)">
+				and (
+						CONCAT(p.addr, '|', p.detail_addr, '|', p.mall_name) like concat('%', #{searchText},'%')
+					or
+						exists (
+					    select 1
+							from partner_tags pt inner join tags t on pt.tag_seq = t.seq
+							where pt.partner_seq = p.seq
+							and p.channel_type = #{channelType}
+							and p.operation = #{operation}
+							and IFNULL(tag,'') like concat('%', #{searchText},'%')
+				)
+			)
+			</if>
+			order by p.mall_name
+	</select>
+
+	<select id="findOddiFileList" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.FileListRes">
+			select pi.partner_seq as seq, pi.file_seq, f.path, f.name, f.extension
+				from partner_image pi inner join files f on f.seq = pi.file_seq
+				where pi.partner_seq = #{seq}
+	</select>
+
+	<select id="findProductList" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiProductResult">
+		select pp.product_seq
+					, p.name
+					, p.price
+					, p.description
+					, p.adv_case_expo
+					, (select name from code where code = p.badge_code) as badge_name
+					, p.badge_code
+					, part.description
+					, part.slot_video_time -- 영상시간
+					, part.operation_week
+					, part.operation_start_time
+					, part.operation_end_time
+					, part.day_expo_count
+					, part.total_slot
+					, part.slot_price
+					, img.file_seq
+					, img.path
+					, img.name as file_name
+					, img.extension
+    	from product p
+			inner join product_partner pp on p.seq = pp.product_seq
+			inner join partner part on part.seq = pp.partner_seq
+			 left join (select pf.product_seq
+													, pf.file_seq
+													, f.path
+													, f.name
+													, f.extension
+										from product_file pf inner join files f on f.seq = pf.file_seq
+									 group by pf.product_seq
+									having pf.file_seq = min(pf.file_seq)
+			 ) img on p.seq = img.product_seq
+			where p.operation = #{operation}
+			and p.channel_type = #{channelType}
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchText)">
+				and exists ( select t.seq
+								from product_partner pp
+								left outer join partner part on  part.seq = pp.partner_seq
+								left outer join partner_tags pt on  pt.partner_seq = part.seq
+								left outer join tags t on t.seq = pt.tag_seq
+								where pp.product_seq = p.seq
+								and part.channel_type =  #{channelType}
+								and p.operation = #{operation}
+								and concat(part.addr, '|', part.detail_addr, '|', part.mall_name, '|',t.tag) like concat('%', #{searchText},'%')
+							)
+			</if>
+			group by p.seq
+    	order by p.name
+	</select>
+
+	<select id="findOddiProductFileList" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.FileListRes">
+			select pf.product_seq as seq, pf.file_seq, f.path, f.name, f.extension
+				from product_file pf inner join files f on f.seq = pf.file_seq
+				where pf.product_seq = #{seq}
+	</select>
+
+
+	<select id="findProductPartnerList" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiProductPartnerRes">
+    select product.product_seq
+          , product.partner_seq
+          , partner.mall_name
+          , summary
+          , latitude
+          , longitude
+          , grid_x
+          , grid_y
+          , img.file_seq
+					, img.path
+					, img.name
+					, img.extension
+    from partner
+    inner join product_partner product on partner.seq = product.partner_seq
+    inner join ( select pf.product_seq, f.seq as file_seq, f.path, f.name, f.extension
+                    from product_file pf inner join files f on pf.file_seq = f.seq
+                    where product_seq = #{searchText}
+                    limit 1
+                  ) img on product.product_seq = img.product_seq and product.product_seq =  #{searchText}
+			and product.product_seq = #{searchText}
+  </select>
+
+  <select id="findAdvDetail" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiDetailResult">
+		select a.seq as adv_seq
+					, m.email
+		      , a.channel_type
+          , (select name from code where code = a.channel_type) as channel_type_name
+          , a.start_date, a.end_date
+          , a.title
+          , a.business_type_code
+          , (select name from code where code = a.business_type_code) as business_type_name
+          , case when business_type_code = 'BST016' then a.etc_business_name else a.etc_business_name end etc_business_name
+          , a.design_request
+          , a.audit_code
+          , (select name from code where code = a.audit_code) as audit_code_name
+          , a.progress_code
+          , (select name from code where code = a.progress_code) as progress_code_name
+          , a.reg_date
+          , a.rejection_date
+          , a.rejection_code
+          , (select name from code where code = a.rejection_code) as rejection_code_name
+          , a.rejection_reason
+          , case when m.member_gbn = 1 then  'BCT003' else
+                 case when mc.corporation = 1 then 'BCT001' else 'BCT002' end end as member_gbn
+          , case when m.member_gbn = 1 then '개인' else
+                 case when mc.corporation = 1 then '법인사업자' else '개인사업자' end end as member_gbn_name
+          , mc.seq as member_company_seq, mc.member_id, mc.corporation, mc.name, mc.ceo, mc.business_license_number
+          , f.seq as file_seq ,f.name as fileName, f.extension, f.path, f.content_type, f.s3_bucket, f.s3_file_key
+          , p.seq as payment_seq
+          , a.oddi_adv_cancel_date
+	  	from adv a
+       left join member m on a.member_id = m.id
+       left join member_company mc on m.id = mc.member_id and a.company_seq = mc.seq
+       left join files f on mc.business_license_file = f.seq
+       left join payment p on a.seq = p.adv_seq and a.payment_seq = p.seq
+		where a.seq = #{advSeq}
+  </select>
+
+	<select id="findAdvPartnerList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvPartnerDetailRes">
+    select ap.partner_seq
+    			, p.mall_name
+    			, ap.request_slot
+    			, p.slot_price
+    			, p.total_slot
+    			, adv.seq as adv_seq
+      from adv
+     inner join adv_partner ap on adv.seq = ap.adv_seq
+     inner join partner p on ap.partner_seq = p.seq
+    where adv.seq = #{advSeq}
+  </select>
+
+	<select id="findAdvProductDetail" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiProductiDetailResult">
+		select p.seq as product_seq
+          , p.name as productName
+          , ap.adv_seq
+          , m.email
+          , a.channel_type
+          , (select name from code where code = a.channel_type) as channel_type_name
+          , a.start_date, a.end_date
+          , a.title
+          , a.business_type_code
+          , (select name from code where code = a.business_type_code) as business_type_name
+          , case when business_type_code = 'BST016' then a.etc_business_name else a.etc_business_name end etc_business_name
+          , a.design_request
+          , a.audit_code
+          , (select name from code where code = a.audit_code) as audit_code_name
+          , a.progress_code
+          , (select name from code where code = a.progress_code) as progress_code_name
+          , a.reg_date
+          , a.rejection_date
+          , a.rejection_code
+          , (select name from code where code = a.rejection_code) as rejection_code_name
+          , a.rejection_reason
+          , case when m.member_gbn = 1 then  'BCT003' else
+                 case when mc.corporation = 1 then 'BCT001' else 'BCT002' end end as member_gbn
+          , case when m.member_gbn = 1 then '개인' else
+                 case when mc.corporation = 1 then '법인사업자' else '개인사업자' end end as member_gbn_name
+          ,  mc.seq as member_company_seq, mc.member_id, mc.corporation, mc.name, mc.ceo, mc.business_license_number
+          , f.seq as file_seq ,f.name as fileName, f.extension, f.path, f.content_type, f.s3_bucket, f.s3_file_key
+          , p.price
+          , ap.adv_seq
+          , pay.seq as payment_seq
+          , a.oddi_adv_cancel_date
+          , a.payment_seq
+      from adv_product ap
+             inner join adv a on ap.adv_seq = a.seq
+             inner join product p on ap.product_seq = p.seq
+             left join member m on a.member_id = m.id
+             left join member_company mc on m.id = mc.member_id and a.company_seq = mc.seq
+             left join files f on mc.business_license_file = f.seq
+             left join payment pay on a.seq = pay.adv_seq
+       where ap.adv_seq = #{advSeq}
+      group by p.seq
+  </select>
+
+	<select id="findAdvFileList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvFileRes">
+    select af.file_seq, af.type ,af.view_order
+    			, (select name from code where code = af.type) as type_name
+    			, f.name, f.extension, f.path, f.content_type
+          , f.s3_bucket, f.s3_file_key, f.mapping_done
+      from adv_file af inner join files f on af.file_seq = f.seq
+     where af.adv_seq = #{advSeq}
+     order by af.view_order asc
+  </select>
+
+	<select id="findAdvPartnerProductList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvPartnerDetailRes">
+    select pp.partner_seq, p.mall_name, ap.request_slot, p.slot_price, p.total_slot, ap.adv_seq
+			from product_partner pp
+		 inner join partner p on pp.partner_seq = p.seq
+		 inner join adv_product ap on ap.product_seq = pp.product_seq
+		 where pp.product_seq = #{productSeq}
+		   and ap.adv_seq = #{advSeq}
+  </select>
+
+	<select id="findTermsList" resultType="com.exflyer.oddi.user.api.voc.terms.dto.TermsServiceRes">
+    select version, seq, title, contents, required
+			from (
+					 select ROW_NUMBER() OVER(PARTITION BY a.type ORDER BY a.version DESC) as rownum
+							 , a.version, a.seq, a.title, a.contents, a.required
+							 from terms a left join member_terms b
+							 on a.seq = b.terms_seq
+							 where a.adv_terms = 1
+							 and b.member_id = #{memberId}
+							 and a.status_code = 'TST002'
+					 )t
+			where rownum = 1
+  </select>
+
+	<select id="findListHistory" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiHistoryResult">
+		select seq as adv_seq
+				, channel_type
+				, case when t.product_seq <![CDATA[ <> ]]> 0 then CONCAT(t.channel_type_name, ' 묶음 상품')
+				else  t.channel_type_name end channel_type_name
+				, title
+				, t.business_type_code
+				, (select name from code where code = t.business_type_code) as business_type_name
+				, start_date, end_date
+				, design_request
+				, audit_code
+				, t.request_slot
+				, (select name from code where code = t.audit_code) as audit_code_name
+				, t.product_seq
+				, case when end_date <![CDATA[ < ]]> #{toDay} then '완료'
+								when start_date <![CDATA[ > ]]> #{toDay} then '대기' else '진행' end as adv_status
+			 ,  reg_date
+			from (select seq
+								, channel_type
+								, (select name from code where code = a.channel_type) as channel_type_name
+								, title
+								, business_type_code
+								, start_date, end_date
+								, design_request
+								, audit_code
+								, IFNULL((select ap.product_seq from  adv_product ap where a.seq = ap.adv_seq),0) as product_seq
+								, sum(partner.request_slot) as request_slot
+								, a.reg_date
+							from adv a left join adv_partner partner on a.seq = partner.adv_seq
+							where a.member_id =  #{memberId}
+							and a.audit_code = 'ADT002'
+							and a.progress_code in ('PGT002','PGT004')
+							group by a.seq
+						) t
+      order by reg_date desc
+	</select>
+
+	<select id="findHistoryPartner" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiHistoryPartner">
+		select a.seq as adv_seq,p.seq as partner_seq, p.mall_name
+			from adv a
+			inner join adv_partner ap on a.seq = ap.adv_seq
+			inner join partner p on ap.partner_seq = p.seq
+			where a.member_id = #{memberId}
+			and a.seq = #{advSeq}
+			and a.audit_code = 'ADT002'
+			and a.progress_code in ('PGT002','PGT004')
+	</select>
+
+	<select id="findHistoryProductPartner" resultType="com.exflyer.oddi.user.api.adv.oddi.dto.OddiHistoryPartner">
+		select a.seq as adv_seq, pp.product_seq, p.seq as partner_seq, p.mall_name
+			from adv a
+			inner join adv_partner ap on a.seq = ap.adv_seq
+			inner join product_partner pp on ap.partner_seq = pp.partner_seq
+			inner join partner p on pp.partner_seq = p.seq
+			where a.member_id = #{memberId}
+				and a.seq = #{advSeq}
+				and pp.product_seq  = #{productSeq}
+				and a.audit_code = 'ADT002'
+				and a.progress_code in ('PGT002','PGT004')
+	</select>
+
+	<select id="findVodInfo" resultType="com.exflyer.oddi.user.models.Youtube">
+		select
+						y.youtube_id
+					, yp.partner_seq
+					, y.youtube_reg_date
+					, y.youtube_title
+					, y.youtube_description
+					, y.youtube_thumbnails
+					, y.youtube_play_id
+					, y.reg_date
+					, y.youtube_url
+					, y.expo
+		from youtube y inner join youtube_partner yp on y.youtube_id = yp.youtube_id
+		<where>
+			<if test="productSeq == null">
+				and yp.partner_seq = #{partnerSeq}
+			</if>
+			<if test="productSeq != null">
+				and partner_seq = (select partner_seq from product_partner where yp.partner_seq = partner_seq and product_seq = #{productSeq} order by reg_date desc limit 1)
+			</if>
+			<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(channelType)'>
+				and exists (select 1 from partner where seq = yp.partner_seq and channel_type = #{channelType})
+			</if>
+			and y.expo = true
+		</where>
+		order by y.youtube_reg_date desc
+		limit 1
+	</select>
+
+	<select id="findTopVodInfo" resultType="com.exflyer.oddi.user.models.Youtube">
+		select
+					y.youtube_id
+				, yp.partner_seq
+				, y.youtube_reg_date
+				, y.youtube_title
+				, y.youtube_description
+				, y.youtube_thumbnails
+				, y.youtube_play_id
+				, y.reg_date
+				, y.youtube_url
+				, y.expo
+		from youtube y inner join youtube_partner yp on y.youtube_id = yp.youtube_id
+		where y.expo = true
+		<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(channelType)'>
+			and exists (select 1 from partner where seq = yp.partner_seq and channel_type = #{channelType})
+		</if>
+		order by y.youtube_reg_date desc
+		limit 1
+	</select>
+
+	<select id="findReadyPartnerSlotList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvReadyPartnerSlotRes">
+		select
+		 	partner.seq as partner_seq
+		 	, partner.total_slot
+			, ifnull(v.used_slot_count, 0) + 1 as used_slot
+			, ifnull(case when partner.total_slot <![CDATA[<]]> v.used_slot_count then 0
+							else partner.total_slot - (ifnull(v.used_slot_count, 0) + 1)
+			end, partner.total_slot) as ready_slot
+		from
+		 	partner
+		 	left outer join (
+				select
+					v.partner_seq
+					, sum(ifnull(used_slot_count, 0)) as used_slot_count
+				from (
+					select
+						partner.partner_seq
+						, sum(case when adv.start_date between #{startDate} and #{endDate} then partner.request_slot
+									 when adv.end_date   between #{startDate} and #{endDate} then partner.request_slot
+									 when adv.start_date <![CDATA[<=]]> #{startDate} and adv.end_date >= #{endDate} then partner.request_slot
+									 else 0
+						end) as used_slot_count
+					from
+						adv
+						inner join adv_partner partner
+						on
+								partner.adv_seq = adv.seq
+					where
+						adv.channel_type = 'PTT001'
+					and
+						adv.progress_code in ('PGT001', 'PGT002')
+					and
+						( adv.end_date >= #{startDate} )
+					<choose>
+					 <when test="!@org.springframework.util.CollectionUtils@isEmpty(partnerSeqList)">
+					and
+						partner.partner_seq in
+						<foreach collection="partnerSeqList" item="partnerSeq" open="(" separator="," close=")">
+							#{partnerSeq}
+						</foreach>
+						</when>
+						<otherwise>
+						and
+							partner.partner_seq = #{partnerSeq}
+						</otherwise>
+					</choose>
+					group by
+						partner.partner_seq
+				) v
+				group by
+					v.partner_seq
+			) v
+			on
+				v.partner_seq = partner.seq
+		where
+			partner.channel_type = 'PTT001'
+		and
+		<choose>
+			<when test="!@org.springframework.util.CollectionUtils@isEmpty(partnerSeqList)">
+				partner.seq in
+				<foreach collection="partnerSeqList" item="partnerSeq" open="(" separator="," close=")">
+					#{partnerSeq}
+				</foreach>
+			</when>
+			<otherwise>
+				partner.seq = #{partnerSeq}
+			</otherwise>
+		</choose>
+		order by
+			v.partner_seq
+	</select>
+
+	<select id="findOddiNameList" resultType="com.exflyer.oddi.user.api.adv.adv.dto.PartnerName">
+		select t.*
+  		from (
+						select seq
+									 , mall_name as name
+									 , false as product_yn
+							from partner
+							where channel_type = #{channelType}
+							 and operation = true
+							union all
+							select seq
+									 , name
+									 , true as product_yn
+								from product
+							where channel_type = #{channelType}
+								and operation = true
+						)t
+			order by product_yn desc, name
+	</select>
+</mapper>

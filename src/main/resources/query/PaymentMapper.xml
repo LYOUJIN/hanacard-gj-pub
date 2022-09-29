@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.payment.dao.PaymentMapper">
+
+	<select id="findAdvDetail" resultType="com.exflyer.oddi.user.api.payment.dto.PaymentDetailResult">
+		select a.seq as adv_seq
+					, ap.product_seq
+					, pro.name as productName
+					, a.channel_type
+					, (select name from code where code = a.channel_type) as channel_type_name
+					, a.start_date, a.end_date
+					, a.title
+					, a.design_request
+					, case when m.member_gbn = 1 then  'BCT003' else
+								 case when mc.corporation = 1 then 'BCT001' else 'BCT002' end end as member_gbn
+					, case when m.member_gbn = 1 then '개인' else
+								 case when mc.corporation = 1 then '법인사업자' else '개인사업자' end end as member_gbn_name
+					, mc.member_id, mc.corporation, mc.name, mc.ceo, mc.business_license_number
+					, f.seq as file_seq ,f.name as fileName, f.extension, f.path, f.content_type, f.s3_bucket, f.s3_file_key
+			from adv a
+			left join adv_product ap on a.seq = ap.adv_seq
+			left join product pro on pro.seq = ap.product_seq
+		  left join member m on a.member_id = m.id
+		  left join (select seq, member_id, corporation, name, ceo, business_license_file, business_license_number
+								from(select ROW_NUMBER() OVER(PARTITION BY member_id ORDER BY seq DESC)   as rownum
+												 , seq, member_id, corporation, name, ceo, business_license_file, business_license_number
+										 from member_company) t
+								where rownum = 1) mc on mc.member_id = a.member_id
+		  left join files f on mc.business_license_file = f.seq
+			where a.seq = #{advSeq}
+  </select>
+
+  <select id="findPaymentCoupon" resultType="com.exflyer.oddi.user.api.payment.dto.PaymentCouponRes">
+    select p.seq as coupon_seq, name as coupon_name, discount_price, pc.coupon_code,pc.expired_date
+  		from promotion_coupon pc inner join promotion p
+  		where pc.promotion_seq = p.seq
+     	 and pc.member_id = #{memberId}
+       and pc.expired_date >= #{expiredDate}
+       and pc.usable = #{couponUsable}
+       and p.usable = #{promotionUsable}
+			<if test = 'paymentFirst == 0'>
+			 union all
+			select p.seq as coupon_seq, name as coupon_name, discount_price, pc.coupon_code,pc.expired_date
+				from promotion_coupon pc inner join promotion p
+				where pc.promotion_seq = p.seq
+					and pc.member_id = #{memberId}
+					and pc.expired_date is null
+					and pc.usable = #{couponUsable}
+					and p.usable = #{promotionUsable}
+			</if>
+  </select>
+
+	<select id="findCouponPromotion" resultType="com.exflyer.oddi.user.api.payment.dto.PaymentCouponRes">
+		select cm.seq as coupon_mapping_seq
+					, cp.seq as coupon_seq
+					, cp.name as coupon_name
+					, cp.discount_price
+					, c.coupon_code
+				  , cp.coupon_limit
+					, case when cp.coupon_limit = 0 then '무제한' else '제한' end as coupon_limit_name
+					, cp.multi_using
+					, case when cp.multi_using = 0 then '일반' else '공통' end as multi_using_name
+					, date_format(c.expired_date, '%Y-%m-%d') as expired_date
+					, cp.signup_coupon_type
+					, (select name from code where code = cp.signup_coupon_type) as signup_coupon_type_name
+					, discount_type
+					, (select name from code where code = cp.discount_type) as discount_type_name
+			from coupon_mapping cm
+			inner join coupon c
+				on c.seq = cm.coupon_seq
+				and cm.usable = false
+				and c.start_date <![CDATA[ <= ]]> #{expiredDate}
+				and c.expired_date <![CDATA[ >= ]]> #{expiredDate}
+				and c.del = false
+				and cm.member_id = #{memberId}
+			inner join coupon_promotion cp on cp.seq = c.promotion_seq
+		    and promotion_channel_type in ('PCT001', #{promotionChannelType})
+		<if test = '@org.apache.commons.lang3.StringUtils@isNotBlank(signupCouponType)'>
+				and (cp.signup_coupon_type <![CDATA[ <> ]]> #{signupCouponType} or cp.signup_coupon_type is null)
+			</if>
+			<if test = 'couponMappingSeq != null'>
+				and cm.seq = #{couponMappingSeq}
+			</if>
+	</select>
+
+  <select id= "fnidPaymentInfo" resultType="com.exflyer.oddi.user.api.payment.dto.PaymentCancelRes">
+    select p.seq as payment_seq
+    			, a.seq as adv_seq
+    			, a.title as adv_title
+          , p.member_id, a.coupon_number
+          , ppl.pay_method, ppl.tid,  IFNULL(p.price,0) as price
+          , ppl.buyer_name,ppl.buyer_email, ppl.appl_num
+          , p.type
+      from payment p
+     inner join adv a on p.adv_seq = a.seq
+     left join pg_payment_log ppl on ppl.payment_seq = p.seq and ppl.tid is not null and ppl.result_code in ('00','0000')
+   where p.seq = #{paymentSeq}
+     and p.adv_seq = #{advSeq}
+		 and p.type='PGT002'
+  </select>
+
+	<select id= "findByPayment" resultType="com.exflyer.oddi.user.api.payment.dto.PaymentReq">
+		select p.seq as payment_seq
+					, p.type
+					, p.member_id
+					, p.adv_seq
+					, p.price
+					, p.channel_type
+					, p.product_name
+					, p.adv_name as good_name
+					, p.adv_start_date
+					, p.adv_end_date
+					, p.reg_date
+					, p.response_code
+					, p.response_message
+					, p.sync_date
+					, p.success
+					, case when member_gbn = 0 then mc.name else m.name end as buyer_name
+					, m.phone_number as buyer_tel
+					, m.email as buyer_email
+					, a.coupon_number
+		from payment p
+		inner join adv a on p.adv_seq = a.seq
+		left join adv_product ap on a.seq = ap.adv_seq
+		inner join member m on p.member_id = m.id
+		left join member_company mc on mc.member_id = m.id and a.company_seq = mc.seq
+		where p.seq = #{paymentSeq}
+	</select>
+
+
+	<select id= "findByPromotionInfo2" resultType="Integer">
+		select p.discount_price
+		 from promotion_coupon pc inner join promotion p on pc.promotion_seq = p.seq
+		where pc.coupon_code = #{couponCode}
+			and pc.usable = 0
+	</select>
+
+	<select id= "findByPromotionInfo" resultType="Integer">
+		select p.discount_price
+		from promotion_coupon pc inner join promotion p on pc.promotion_seq = p.seq
+		where pc.coupon_code = #{couponCode}
+			and pc.usable = 0
+	</select>
+
+	<select id= "findAdvCancelUserInfo" resultType="com.exflyer.oddi.user.api.payment.dto.AdvUserCancelReq">
+		select a.member_id as id
+				 , a.title
+				 , date_format(a.start_date, '%Y-%m-%d') as start_date
+				 , date_format(a.end_date, '%Y-%m-%d') as end_date
+				 , FORMAT(IFNULL(p.price,0), 0) AS price
+				 , a.reg_date
+				 , m.phone_number
+				 , m.name
+			from adv a inner join member m on a.member_id = m.id
+			inner join payment p on a.seq = p.adv_seq
+		where a.seq = #{advSeq}
+	</select>
+
+	<select id="findPaymentInfo" resultType="com.exflyer.oddi.user.models.Payment">
+		select p.seq
+					, p.type
+					, p.member_id
+					, (select name from member m where m.id = p.member_id) as member_name
+					, p.adv_seq
+					, p.price
+					, p.channel_type
+					, p.product_name
+					, p.adv_name
+					, p.adv_start_date
+					, p.adv_end_date
+					, p.reg_date
+					, p.response_code
+					, p.response_message
+					, p.sync_date
+					, p.success
+		   from payment p
+	</select>
+
+	<select id="findByAdvSeq" resultType="com.exflyer.oddi.user.api.adv.adv.dto.AdvPartnerReq">
+		select ap.adv_seq, ap.partner_seq, ap.request_slot
+		  from adv_partner ap inner join adv a on ap.adv_seq = a.seq
+		where a.seq = #{advSeq} and a.member_id = #{memberId}
+	</select>
+
+
+</mapper>

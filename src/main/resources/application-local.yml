@@ -1,0 +1,92 @@
+spring:
+  datasource:
+    hikari:
+      username: root
+      password: "votmxmvkdlqm!@"
+      pool-name: oddiad-pool
+      max-lifetime: 12000
+      connection-test-query: select now()
+      minimum-idle: 2
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: "jdbc:mysql://moinworks.kr:53306/oddiad?characterEncoding=utf8&useSSL=false"
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+      use-new-id-generator-mappings: false
+    properties:
+      hibernate:
+        temp:
+          use_jdbc_metadata_defaults=false: false
+        show_sql: true
+        format_sql: true
+        use_sql_comments: true
+logging:
+  config: classpath:logback-console.xml
+  level:
+    org:
+      hibernate:
+        type:
+          descriptor:
+            sql: trace
+
+# timezone
+timezone: "Asia/Seoul"
+
+aws:
+  s3:
+    public:
+      bucket: "skd-s3"
+      video-dir: "/oddiad/adv/pre-convert"
+      adv_image-dir: "/oddiad/adv/image"
+      attachments-dir: "/oddiad/attachments"
+      private-dir: "/oddiad/business-license/private"
+      corporation-dir: "/oddiad/business-license/corporation"
+      url-host: "https://skd-s3.s3.ap-northeast-2.amazonaws.com"
+      region: ap-northeast-2
+
+surem:
+  host: "https://dynapi.surem.com/"
+  deptcode: 4W-BJP-P6
+  usercode: episode
+  # 대표 번호 적용 하려면 발신번호를 sureM 에 등록 해야됨
+  sender: "01075633127"
+  secuCd: "f71742597bd420117f7736f9b052a665fed39d1cdf53707f955da2d6921dcd32"
+
+inicis:
+  mid: "INIpayTest"
+  sign:
+    key: "SU5JTElURV9UUklQTEVERVNfS0VZU1RS"
+  cancel:
+    url: "https://iniapi.inicis.com/api/v1/refund"
+  key: "ItEQKi3rY7uvDS8l"
+  site-url: "http://localhost:28090"
+  clientIp : "127.0.0.1"
+
+
+mustad:
+  signin: "https://dispatcher.dev.showit.sbcsvl.com/dispatcher/0.4/user/api/oddiad/registUser"
+  storeprofiles: "https://dispatcher.dev.showit.sbcsvl.com/dispatcher/0.4/signagecontent/api/storeprofiles"
+  userprofile: "https://dispatcher.dev.showit.sbcsvl.com/dispatcher/0.4/user/api/userdetails"
+  federated:
+    auth: "https://dispatcher.dev.showit.sbcsvl.com/dispatcher/0.4/user/api/federatedauth"
+    my-content: "https://dispatcher.dev.showit.sbcsvl.com/dispatcher/0.4/discovery/api/searchresources?page=1&provider=SignageContent&resourcetype=Content.userboardlist"
+    userpool_id: "/us-west-2_HccDDL7d2"
+    client-id: "portal-dev"
+  kakao:
+    state: "oddi"
+    type: "code"
+    key: "c8a1741c7ccb3847e50ea4211328bd84"
+    oauth-host: "https://kauth.kakao.com"
+    api-host: "https://kapi.kakao.com"
+    oauth-authorize: "/oauth/authorize"
+    token-uri: "/oauth/token"
+    redirect-uri: "http://localhost:28090/user"
+    grant_type: "authorization_code"
+    aws:
+      auth: "https://wmf83c6jm7.execute-api.us-west-2.amazonaws.com/Stage/authorization"
+
+
+oddi:
+  host: "https://bit.ly/3AYcgsx"

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.live.dao.OddiLiveMapper">
+
+	<select id="findByYoutubeList" resultType="com.exflyer.oddi.user.api.live.dto.YouTubeVodResult">
+		select
+					y.youtube_id
+				, yp.partner_seq
+				, (select channel_type from partner where seq = yp.partner_seq) as channel_type
+				, y.youtube_reg_date
+				, y.youtube_title
+				, y.youtube_description
+				, y.youtube_thumbnails
+				, y.youtube_play_id
+				, y.reg_date
+				, y.youtube_url
+				, y.expo
+		from youtube y left outer join youtube_partner yp on y.youtube_id = yp.youtube_id
+		/*where partner_seq is not null*/
+		where y.expo = true
+		<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(channelType)'>
+			and exists (select 1 from partner where seq = yp.partner_seq and channel_type = #{channelType})
+		</if>
+		<if test='@org.apache.commons.lang3.BooleanUtils@isTrue(isNewOrder)'>
+			order by y.youtube_reg_date desc
+		</if>
+		<if test='@org.apache.commons.lang3.BooleanUtils@isTrue(isOldOrder)'>
+			order by y.youtube_reg_date
+		</if>
+	</select>
+
+	<select id="findIsNewVodInfo" resultType="com.exflyer.oddi.user.api.live.dto.YouTubeVodResult">
+		select
+				y.youtube_id
+			, yp.partner_seq
+			, (select channel_type from partner where seq = yp.partner_seq) as channel_type
+			, y.youtube_reg_date
+			, y.youtube_title
+			, y.youtube_description
+			, y.youtube_thumbnails
+			, y.youtube_play_id
+			, y.reg_date
+			, y.youtube_url
+			, y.expo
+		from youtube y left outer join youtube_partner yp on y.youtube_id = yp.youtube_id
+		where youtube_reg_date &lt; #{nowDate}
+		/*and partner_seq is not null*/
+		and expo = true
+		order by youtube_reg_date desc
+		limit 1
+	</select>
+
+	<select id="findByVodYoutubeList" resultType="com.exflyer.oddi.user.models.Youtube">
+		select y.youtube_id
+					, y.youtube_play_id
+					, y.youtube_title
+					, y.youtube_description
+					, y.youtube_thumbnails
+					, y.youtube_url
+					, y.youtube_reg_date
+					, y.reg_date
+					, yp.partner_seq
+					, y.expo
+		  from youtube y inner join youtube_partner yp on y.youtube_id = yp.youtube_id
+		  where y.youtube_id = {youtubeId}
+	</select>
+
+</mapper>

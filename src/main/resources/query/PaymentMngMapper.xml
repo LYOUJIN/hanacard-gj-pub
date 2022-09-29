@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.my.dao.PaymentMngMapper">
+
+
+	<select id="findList" resultType="com.exflyer.oddi.user.api.my.dto.PaymentMngResult">
+		select *
+		from (
+					 select p.seq                                                     as payment_seq
+								, a.seq                                                     as adv_seq
+								, ap.product_seq
+								, (select sum(request_slot)
+									 from adv_partner adv_partner
+									 where adv_partner.adv_seq = p.adv_seq
+									 group by p.seq)                                          as request_slot
+								, a.reg_date
+								, ppl.moid
+								, CONCAT(ppl.appl_date, ppl.appl_time)                      as appl_date
+								, p.channel_type
+								, (select name from code where code = a.channel_type)       as channel_type_name
+								, case
+										when ap.product_seq is null then p.adv_name
+										else p.product_name end                                 as adv_name
+								, a.business_type_code
+								, (select name from code where code = a.business_type_code) as business_type_name
+								, p.adv_start_date
+								, p.adv_end_date
+								, cp.name                                                   as coupon_name
+								, ppl.pay_method
+								, ifnull(ppl.result_code, p.response_code)                  as result_code
+								, ifnull(ppl.result_msg, p.response_message)                as result_msg
+								, ifnull(ppl.pg_payment_type,0) as pg_payment_type
+								, p.price
+								, a.discount_price
+								, cp.discount_type
+								, (select name from code where code = cp.discount_type)     as discount_type_name
+						 		, p.pay_date
+					 from payment p
+									left join pg_payment_log ppl on p.seq = ppl.payment_seq and ppl.result_code in ('00','0000')
+									left join adv a on p.adv_seq = a.seq
+									left join adv_product ap on a.seq = ap.adv_seq
+									left join coupon_mapping cm on cm.payment_seq = p.seq
+									left join coupon c on c.seq = cm.coupon_seq
+									left join coupon_promotion cp on c.promotion_seq = cp.seq
+					 where p.member_id = #{memberId}
+						 and p.response_code is not null
+						 and (p.type = 'PGT002' OR (p.type='PGT004' AND p.price=0))
+					 union all
+					 select p.seq                                                     as payment_seq
+								, a.seq                                                     as adv_seq
+								, ap.product_seq
+								, (select sum(request_slot)
+									 from adv_partner adv_partner
+									 where adv_partner.adv_seq = p.adv_seq
+									 group by p.seq)                                          as request_slot
+								, a.reg_date
+								, ppl.moid
+								, CONCAT(ppl.appl_date, ppl.appl_time)                      as appl_date
+								, p.channel_type
+								, (select name from code where code = a.channel_type)       as channel_type_name
+								, case
+										when ap.product_seq is null then p.adv_name
+										else p.product_name end                                 as adv_name
+								, a.business_type_code
+								, (select name from code where code = a.business_type_code) as business_type_name
+								, p.adv_start_date
+								, p.adv_end_date
+								, cp.name                                                   as coupon_name
+								, ppl.pay_method
+								, ifnull(ppl.result_code, p.response_code)                  as result_code
+								, ifnull(ppl.result_msg, p.response_message)                as result_msg
+								, ifnull(ppl.pg_payment_type,1) as pg_payment_type
+								, p.price
+								, a.discount_price
+								, cp.discount_type
+								, (select name from code where code = cp.discount_type)     as discount_type_name
+								, ifnull(p.pay_cancel_date,p.pay_date) as pay_date
+					 from payment p
+									left join pg_payment_log ppl on p.seq = ppl.payment_seq and ppl.result_code in ('00','0000') and ppl.price is not null
+									left join adv a on p.adv_seq = a.seq
+									left join adv_product ap on a.seq = ap.adv_seq
+									left join coupon_mapping cm on cm.payment_seq = p.seq
+									left join coupon c on c.seq = cm.coupon_seq
+									left join coupon_promotion cp on c.promotion_seq = cp.seq
+					 where p.member_id = #{memberId}
+						 and p.response_code is not null
+						 and (p.type <![CDATA[<> ]]>'PGT002' OR (p.type='PGT004' AND p.price=0))
+		    			and p.response_code in ('00','0000')
+				 )t
+			order by t.payment_seq desc, t.pg_payment_type desc
+	</select>
+
+	<select id="findPartnerList" resultType="com.exflyer.oddi.user.api.my.dto.OddiMngPartner">
+		select a.seq as adv_seq,p.seq as partner_seq, p.mall_name, ap.request_slot
+		from adv a
+		inner join adv_partner ap on a.seq = ap.adv_seq
+		inner join partner p on ap.partner_seq = p.seq
+		where a.member_id = #{memberId}
+		and a.seq = #{advSeq}
+	</select>
+
+	<select id="findProductPartnerList" resultType="com.exflyer.oddi.user.api.my.dto.OddiMngPartner">
+		select a.seq as adv_seq, pp.product_seq, p.seq as partner_seq, p.mall_name, ap.request_slot
+		from adv a
+		inner join adv_partner ap on a.seq = ap.adv_seq
+		inner join product_partner pp on ap.partner_seq = pp.partner_seq
+		inner join partner p on pp.partner_seq = p.seq
+		where a.member_id = #{memberId}
+		and a.seq = #{advSeq}
+		and pp.product_seq  = #{productSeq}
+	</select>
+
+
+</mapper>

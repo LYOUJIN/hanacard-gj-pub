@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exflyer.oddi.user.api.home.dao.HomeMapper">
+
+	<select id="findByMainSlider" resultType="com.exflyer.oddi.user.api.home.dto.HomeMainSlider">
+		select
+			name
+			,description
+			,router_link
+			,button_name
+			,(select path from files f where f.seq = b.file_seq) as file_path
+		from banner b
+		where b.usable = true
+			and type='BNT001' and location_code = 'BLT001'
+			and  date_format(#{targetDate}, '%Y%m%d') between expo_start_date and expo_end_date
+	</select>
+
+	<select id="findByMainPartners" resultType="com.exflyer.oddi.user.api.home.dto.HomeMainPartners">
+		select
+			mall_name
+			,summary
+			,(select path from files f where f.seq = pi.file_seq LIMIT 1) as file_path
+		from partner p
+		join partner_image pi on p.seq = pi.partner_seq
+		where channel_type = 'PTT001'
+		and operation = 1
+		group by p.seq
+	</select>
+
+	<select id="findByMainPartnersCnt" resultType="Integer">
+		select count(1)
+		from (select
+								 mall_name
+							,summary
+							,(select path from files f where f.seq = pi.file_seq LIMIT 1) as file_path
+					from partner p
+								 join partner_image pi on p.seq = pi.partner_seq
+					where channel_type = 'PTT001'
+						and operation = 1
+					group by p.seq)t
+	</select>
+
+</mapper>
